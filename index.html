@@ -28,7 +28,7 @@
         h1 {
             color: var(--accent-color);
             font-size: 2.5rem;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
             text-shadow: 0 0 10px rgba(255, 71, 87, 0.3);
             letter-spacing: 2px;
             text-align: center;
@@ -41,7 +41,44 @@
             padding: 20px;
             border-radius: 12px;
             box-shadow: 0 8px 24px rgba(0,0,0,0.5);
-            overflow-x: auto; /* 避免手機螢幕過窄 */
+            overflow-x: auto;
+        }
+
+        /* 新增的設定區塊樣式 */
+        .config-bar {
+            width: 100%;
+            max-width: 950px;
+            background-color: #2f3542;
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            box-sizing: border-box;
+        }
+
+        .config-bar label {
+            font-weight: bold;
+            color: #ffa502;
+            font-size: 1.1rem;
+        }
+
+        .config-bar input {
+            background-color: #1a1a1a;
+            border: 1px solid #555;
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 1rem;
+            width: 100px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .config-bar input:focus {
+            border-color: var(--accent-color);
+            outline: none;
         }
 
         table {
@@ -66,7 +103,6 @@
             white-space: nowrap;
         }
 
-        /* 血量排序欄位樣式 */
         .sortable {
             cursor: pointer;
             user-select: none;
@@ -91,14 +127,12 @@
             background-color: var(--table-hover);
         }
 
-        /* 名次特殊樣式 */
         .rank-1 { color: #ffd700; font-weight: bold; font-size: 1.3rem; }
         .rank-2 { color: #c0c0c0; font-weight: bold; font-size: 1.2rem; }
         .rank-3 { color: #cd7f32; font-weight: bold; font-size: 1.15rem; }
         
-        /* 血條樣式 */
         .hp-bar-container {
-            width: 80px;
+            width: 100px;
             background-color: #444;
             border-radius: 4px;
             display: inline-block;
@@ -109,13 +143,12 @@
         .hp-bar {
             height: 8px;
             background-color: #2ed573;
-            transition: width 0.3s ease;
+            transition: width 0.2s ease;
         }
 
-        /* 按鈕樣式 */
         .action-btns {
             display: flex;
-            gap: 5px;
+            gap: 6px;
             justify-content: center;
             flex-wrap: wrap;
         }
@@ -123,7 +156,7 @@
         button {
             border: none;
             border-radius: 4px;
-            padding: 6px 10px;
+            padding: 6px 12px;
             font-weight: bold;
             cursor: pointer;
             color: white;
@@ -150,6 +183,13 @@
 <body>
 
     <h1>失控事務所積分錦標賽</h1>
+
+    <!-- 頂部設定列 -->
+    <div class="config-bar">
+        <label for="max-hp-input">🩸 血量顯示滿分上限：</label>
+        <input type="number" id="max-hp-input" value="200" min="1" oninput="updateMaxHp(this.value)">
+        <span style="color: #aaa; font-size: 0.9rem;">(變更此數值可即時調整下方血量條的滿血比例基準)</span>
+    </div>
 
     <div class="container">
         <table>
@@ -183,12 +223,24 @@
             { name: "亞", hp: 6,  points: 0 }   
         ];
 
+        // 全域血量滿分變數 (預設 200)
+        let maxHp = 12;
+
         // 排序狀態：0 = 按積分排名, 1 = 血量降序, -1 = 血量升序
         let hpSortDirection = 0; 
 
         // 初始化
         function init() {
             updateDataAndRender();
+        }
+
+        // 更新最大血量設定
+        function updateMaxHp(value) {
+            let val = parseInt(value);
+            if (!isNaN(val) && val > 0) {
+                maxHp = val;
+                renderTable(); // 重新渲染血量條
+            }
         }
 
         // 核心邏輯：更新名次 -> 套用當前排序 -> 渲染畫面
@@ -198,7 +250,7 @@
             renderTable();
         }
 
-        // 計算名次 (只依據積分，與畫面排序無關)
+        // 計算名次 (只依據積分)
         function calculateRanks() {
             let sortedByPoints = [...participants].sort((a, b) => b.points - a.points);
             let currentRank = 1;
@@ -214,21 +266,20 @@
             }
         }
 
-        // 套用目前的排序規則 (確保修改數值後，畫面不會亂跳)
+        // 套用目前的排序規則
         function applyCurrentSort() {
             if (hpSortDirection === 1) {
-                participants.sort((a, b) => b.hp - a.hp); // 血量高到低
+                participants.sort((a, b) => b.hp - a.hp); 
             } else if (hpSortDirection === -1) {
-                participants.sort((a, b) => a.hp - b.hp); // 血量低到高
+                participants.sort((a, b) => a.hp - b.hp); 
             } else {
-                participants.sort((a, b) => b.points - a.points); // 預設：積分高到低
+                participants.sort((a, b) => b.points - a.points); 
             }
         }
 
         // 使用者點擊標題切換血量排序
         function toggleHpSort() {
             const icon = document.getElementById('sort-direction');
-            
             if (hpSortDirection === 0 || hpSortDirection === -1) {
                 hpSortDirection = 1;
                 icon.innerText = "▼";
@@ -239,16 +290,16 @@
             updateDataAndRender();
         }
 
-        // 修改數值的功能 (快速加減)
+        // 修改數值的功能 (精簡為固定加減 1 分/點)
         function changeValue(name, type, amount) {
             let player = participants.find(p => p.name === name);
             if (player) {
                 if (type === 'hp') {
                     player.hp += amount;
-                    if (player.hp < 0) player.hp = 0; // 防止血量變負數
+                    if (player.hp < 0) player.hp = 0; 
                 } else if (type === 'points') {
                     player.points += amount;
-                    if (player.points < 0) player.points = 0; // 防止積分變負數
+                    if (player.points < 0) player.points = 0; 
                 }
                 updateDataAndRender();
             }
@@ -268,7 +319,6 @@
                     player.points = parseInt(newPoints);
                 }
                 
-                // 防止輸入負數
                 if (player.hp < 0) player.hp = 0;
                 if (player.points < 0) player.points = 0;
 
@@ -284,19 +334,19 @@
             participants.forEach(p => {
                 const tr = document.createElement('tr');
 
-                // 名次特殊樣式
                 let rankClass = '';
                 if (p.rank === 1) rankClass = 'rank-1';
                 else if (p.rank === 2) rankClass = 'rank-2';
                 else if (p.rank === 3) rankClass = 'rank-3';
 
-                // 計算血量條比例 (以最大 200 為視覺基準)
-                let hpPercent = Math.min((p.hp / 200) * 100, 100);
+                // 根據動態設定的 maxHp 計算百分比
+                let hpPercent = Math.min((p.hp / maxHp) * 100, 100);
+                if (hpPercent < 0) hpPercent = 0;
 
                 tr.innerHTML = `
                     <td><strong>${p.name}</strong></td>
                     <td>
-                        <span style="display:inline-block; width:30px;">${p.hp}</span>
+                        <span style="display:inline-block; width:35px; text-align:right;">${p.hp}</span>
                         <div class="hp-bar-container">
                             <div class="hp-bar" style="width: ${hpPercent}%;"></div>
                         </div>
@@ -305,10 +355,10 @@
                     <td class="${rankClass}">第 ${p.rank} 名</td>
                     <td>
                         <div class="action-btns">
-                            <button class="btn-hp-add" onclick="changeValue('${p.name}', 'hp', 10)">+10 血</button>
-                            <button class="btn-hp-sub" onclick="changeValue('${p.name}', 'hp', -10)">-10 血</button>
-                            <button class="btn-pt-add" onclick="changeValue('${p.name}', 'points', 50)">+50 分</button>
-                            <button class="btn-pt-sub" onclick="changeValue('${p.name}', 'points', -50)">-50 分</button>
+                            <button class="btn-hp-add" onclick="changeValue('${p.name}', 'hp', 1)">+1 血</button>
+                            <button class="btn-hp-sub" onclick="changeValue('${p.name}', 'hp', -1)">-1 血</button>
+                            <button class="btn-pt-add" onclick="changeValue('${p.name}', 'points', 1)">+1 分</button>
+                            <button class="btn-pt-sub" onclick="changeValue('${p.name}', 'points', -1)">-1 分</button>
                             <button class="btn-edit" onclick="customEdit('${p.name}')">✏️ 自訂</button>
                         </div>
                     </td>
