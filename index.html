@@ -42,7 +42,7 @@
 
         .container {
             width: 100%;
-            max-width: 950px;
+            max-width: 1150px;
             background-color: var(--card-bg);
             padding: 20px;
             border-radius: 12px;
@@ -53,17 +53,24 @@
         /* 設定控制列 */
         .config-bar {
             width: 100%;
-            max-width: 950px;
+            max-width: 1150px;
             background-color: #2f3542;
             padding: 15px 20px;
             border-radius: 8px;
             margin-bottom: 20px;
             display: flex;
             align-items: center;
-            justify-content: space-between; /* 讓重設按鈕靠右 */
+            justify-content: space-between;
             box-sizing: border-box;
             flex-wrap: wrap;
             gap: 15px;
+        }
+
+        .config-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
         }
 
         .config-item {
@@ -78,7 +85,7 @@
             font-size: 1rem;
         }
 
-        .config-bar input {
+        .config-bar input, .config-bar select {
             background-color: #1a1a1a;
             border: 1px solid #555;
             color: #fff;
@@ -86,12 +93,20 @@
             border-radius: 4px;
             font-size: 1rem;
             font-weight: bold;
-            width: 80px;
-            text-align: center;
             font-family: 'Orbitron', sans-serif;
         }
 
-        .config-bar input:focus {
+        .config-bar select {
+            color: #1e90ff;
+            cursor: pointer;
+        }
+
+        .config-bar input {
+            width: 60px;
+            text-align: center;
+        }
+
+        .config-bar input:focus, .config-bar select:focus {
             border-color: var(--accent-color);
             outline: none;
         }
@@ -101,7 +116,7 @@
             border-collapse: collapse;
             text-align: center;
             font-size: 1.1rem;
-            min-width: 700px;
+            min-width: 950px;
         }
 
         th, td {
@@ -118,24 +133,13 @@
             white-space: nowrap;
         }
 
-        .sortable {
-            cursor: pointer;
-            user-select: none;
-            transition: background-color 0.2s;
-        }
-
-        .sortable:hover {
-            background-color: #3e4452;
-        }
-
-        .sort-icon {
-            font-size: 0.9rem;
-            margin-left: 5px;
-            color: #ccc;
+        th.hp-header {
+            color: #2ed573;
+            text-shadow: 0 0 5px rgba(46, 213, 115, 0.3);
         }
 
         tbody tr {
-            transition: background-color 0.2s;
+            transition: transform 0.2s ease, background-color 0.2s;
         }
 
         tbody tr:hover {
@@ -147,7 +151,7 @@
         .rank-3 { color: #cd7f32; font-weight: bold; font-size: 1.15rem; }
         
         .hp-bar-container {
-            width: 100px;
+            width: 80px;
             background-color: #444;
             border-radius: 4px;
             display: inline-block;
@@ -159,6 +163,29 @@
             height: 8px;
             background-color: #2ed573;
             transition: width 0.2s ease;
+        }
+
+        /* 積分明細字體樣式 */
+        .rounds-breakdown {
+            font-size: 0.85rem;
+            color: #aaa;
+            word-break: break-all;
+            max-width: 380px;
+            margin-left: auto;
+            margin-right: auto;
+            line-height: 1.5;
+        }
+        .base-score-tag {
+            color: #ffa502;
+            font-weight: bold;
+        }
+
+        /* 右方總分數欄位特別強調 */
+        .total-score-display {
+            font-weight: bold; 
+            color: #ffa502; 
+            font-size: 1.4rem;
+            text-shadow: 0 0 8px rgba(255, 165, 2, 0.3);
         }
 
         .action-btns {
@@ -192,8 +219,9 @@
         .btn-hp-sub { background-color: #ff4757; }
         .btn-pt-add { background-color: #1e90ff; }
         .btn-pt-sub { background-color: #ff6348; }
+        .btn-add-round { background-color: #2ed573; color: #000; }
         .btn-edit { background-color: #747d8c; }
-        .btn-reset { background-color: #ffa502; color: #000; }
+        .btn-reset { background-color: #747d8c; color: #fff; padding: 6px 10px; font-size: 0.85rem;}
 
     </style>
 </head>
@@ -203,14 +231,27 @@
 
     <!-- 頂部設定列 -->
     <div class="config-bar">
-        <!-- 血量上限設定 -->
-        <div class="config-item">
-            <label for="max-hp-input">🩸 血量顯示上限：</label>
-            <input type="number" id="max-hp-input" value="20" min="1" oninput="updateMaxHp(this.value)">
+        <div class="config-left">
+            <!-- 血量上限設定 -->
+            <div class="config-item">
+                <label for="max-hp-input">🩸 血量上限：</label>
+                <input type="number" id="max-hp-input" value="20" min="1" oninput="updateMaxHp(this.value)">
+            </div>
+            
+            <!-- 當前賽局選擇器 -->
+            <div class="config-item">
+                <label for="round-select">🎮 目前管理局數：</label>
+                <select id="round-select" onchange="changeCurrentRound(this.value)">
+                    <!-- 由 JS 動態生成 -->
+                </select>
+            </div>
+
+            <!-- 新增局數按鈕 -->
+            <button class="btn-add-round" onclick="addNewRound()">➕ 新增局數</button>
         </div>
         
         <!-- 重設按鈕 -->
-        <button class="btn-reset" onclick="resetToDefault()">🔄 重設預設值</button>
+        <button class="btn-reset" onclick="resetToDefault()">🔄 全賽局重設</button>
     </div>
 
     <div class="container">
@@ -218,9 +259,10 @@
             <thead>
                 <tr>
                     <th>參賽者</th>
-                    <th id="th-hp" class="sortable" onclick="toggleHpSort()">血量 <span id="sort-direction" class="sort-icon">↕</span></th>
-                    <th>已獲得積分</th>
+                    <th class="hp-header">血量 (▼排序基準)</th>
+                    <th>原始分數 & 各局明細</th>
                     <th>名次</th>
+                    <th>總分數</th>
                     <th>操作 (變更數值)</th>
                 </tr>
             </thead>
@@ -231,7 +273,7 @@
     </div>
 
     <script>
-        // 預設的初始資料 (當本地沒紀錄時使用)
+        // 核心要求：程式碼只需先寫原始分數(points)，無需增加每局分數
         const defaultParticipants = [
             { name: "emily", hp: 12, points: 0 },
             { name: "Jamie", hp: 12,  points: 0 },
@@ -242,27 +284,22 @@
             { name: "花花", hp: 1, points: 0 },
             { name: "大學", hp: 9, points: 0 },
             { name: "難姐", hp: 11, points: 0 },
-            { name: "亞", hp: 6,  points: 0 }   
+            { name: "亞", hp: 6,  points: 0 }  
         ];
+        
         const defaultMaxHp = 20;
+        const defaultTotalRounds = 10;
 
-        // 執行階段使用的變數
         let participants = [];
         let maxHp = 20;
+        let totalRounds = 10;
+        let currentRound = 1; 
 
-        // 排序狀態：0 = 按積分排名, 1 = 血量降序, -1 = 血量升序
-        let hpSortDirection = 0; 
-
-        // 初始化：嘗試從 localStorage 載入資料
+        // 初始化
         function init() {
-            const savedParticipants = localStorage.getItem('sk_tournament_players');
-            const savedMaxHp = localStorage.getItem('sk_tournament_maxhp');
-
-            if (savedParticipants) {
-                participants = JSON.parse(savedParticipants);
-            } else {
-                participants = JSON.parse(JSON.stringify(defaultParticipants)); // 深拷貝
-            }
+            const savedPlayers = localStorage.getItem('sk_tour_v5_players');
+            const savedMaxHp = localStorage.getItem('sk_tour_v5_maxhp');
+            const savedTotalRounds = localStorage.getItem('sk_tour_v5_totalrounds');
 
             if (savedMaxHp) {
                 maxHp = parseInt(savedMaxHp);
@@ -271,50 +308,118 @@
                 maxHp = defaultMaxHp;
             }
 
+            if (savedTotalRounds) {
+                totalRounds = parseInt(savedTotalRounds);
+            } else {
+                totalRounds = defaultTotalRounds;
+            }
+
+            if (savedPlayers) {
+                participants = JSON.parse(savedPlayers);
+            } else {
+                // 如果本地沒有紀錄，則根據原始資料，在網頁端「動態建立」各局的 0 分數陣列
+                participants = defaultParticipants.map(p => ({
+                    name: p.name,
+                    hp: p.hp,
+                    points: p.points, // 原始分數
+                    roundScores: Array(totalRounds).fill(0) // 網頁端自動配置
+                }));
+            }
+
+            // 確保每位參賽者的每局分數陣列長度正確 (防止因手動加局導致舊快取對不上)
+            participants.forEach(p => {
+                if(!p.roundScores) p.roundScores = [];
+                while(p.roundScores.length < totalRounds) {
+                    p.roundScores.push(0);
+                }
+            });
+
+            updateRoundDropdown();
             updateDataAndRender();
         }
 
-        // 儲存當前狀態到 localStorage
-        function saveToLocalStorage() {
-            localStorage.setItem('sk_tournament_players', JSON.stringify(participants));
-            localStorage.setItem('sk_tournament_maxhp', maxHp.toString());
+        // 更新局數下拉選單
+        function updateRoundDropdown() {
+            const select = document.getElementById('round-select');
+            select.innerHTML = '';
+            for (let i = 1; i <= totalRounds; i++) {
+                const opt = document.createElement('option');
+                opt.value = i;
+                opt.innerText = `第 ${i} 局`;
+                if (i === currentRound) opt.selected = true;
+                select.appendChild(opt);
+            }
         }
 
-        // 強制重設回預設值
+        // 切換目前管理局數
+        function changeCurrentRound(val) {
+            currentRound = parseInt(val);
+            renderTable(); 
+        }
+
+        // ➕ 網頁端新增局數
+        function addNewRound() {
+            totalRounds++;
+            participants.forEach(p => {
+                p.roundScores.push(0); 
+            });
+            currentRound = totalRounds; 
+            updateRoundDropdown();
+            updateDataAndRender();
+        }
+
+        // 儲存至本地快取
+        function saveToLocalStorage() {
+            localStorage.setItem('sk_tour_v5_players', JSON.stringify(participants));
+            localStorage.setItem('sk_tour_v5_maxhp', maxHp.toString());
+            localStorage.setItem('sk_tour_v5_totalrounds', totalRounds.toString());
+        }
+
+        // 全賽局重設
         function resetToDefault() {
             if (confirm("確定要清除所有更動，重設回原本的初始資料嗎？")) {
-                localStorage.removeItem('sk_tournament_players');
-                localStorage.removeItem('sk_tournament_maxhp');
+                localStorage.removeItem('sk_tour_v5_players');
+                localStorage.removeItem('sk_tour_v5_maxhp');
+                localStorage.removeItem('sk_tour_v5_totalrounds');
                 document.getElementById('max-hp-input').value = defaultMaxHp;
+                totalRounds = defaultTotalRounds;
+                currentRound = 1;
                 init();
             }
         }
 
-        // 更新最大血量設定
+        // 變更血量上限
         function updateMaxHp(value) {
             let val = parseInt(value);
             if (!isNaN(val) && val > 0) {
                 maxHp = val;
-                saveToLocalStorage(); // 儲存上限變更
+                saveToLocalStorage();
                 renderTable(); 
             }
         }
 
-        // 核心邏輯
+        // 核心數據處理
         function updateDataAndRender() {
-            calculateRanks();
-            applyCurrentSort();
+            calculateTotalAndRanks();
+            // 核心規則：永遠依據【血量】由高到低進行畫面重排
+            participants.sort((a, b) => b.hp - a.hp);
             renderTable();
-            saveToLocalStorage(); // 每次資料變動就自動寫入本地小抽屜
+            saveToLocalStorage();
         }
 
-        // 計算名次
-        function calculateRanks() {
-            let sortedByPoints = [...participants].sort((a, b) => b.points - a.points);
+        // 計算總分與名次
+        function calculateTotalAndRanks() {
+            participants.forEach(p => {
+                // 總分 = 原始分數 + 網頁端操作產生的各局加總
+                p.totalPoints = p.points + p.roundScores.reduce((sum, score) => sum + score, 0);
+            });
+
+            // 複製一份專門用來計算積分名次
+            let sortedByPoints = [...participants].sort((a, b) => b.totalPoints - a.totalPoints);
             let currentRank = 1;
             
             for (let i = 0; i < sortedByPoints.length; i++) {
-                if (i > 0 && sortedByPoints[i].points < sortedByPoints[i - 1].points) {
+                if (i > 0 && sortedByPoints[i].totalPoints < sortedByPoints[i - 1].totalPoints) {
                     currentRank = i + 1;
                 }
                 let originalObj = participants.find(p => p.name === sortedByPoints[i].name);
@@ -324,31 +429,7 @@
             }
         }
 
-        // 套用目前的排序規則
-        function applyCurrentSort() {
-            if (hpSortDirection === 1) {
-                participants.sort((a, b) => b.hp - a.hp); 
-            } else if (hpSortDirection === -1) {
-                participants.sort((a, b) => a.hp - b.hp); 
-            } else {
-                participants.sort((a, b) => b.points - a.points); 
-            }
-        }
-
-        // 使用者點擊標題切換血量排序
-        function toggleHpSort() {
-            const icon = document.getElementById('sort-direction');
-            if (hpSortDirection === 0 || hpSortDirection === -1) {
-                hpSortDirection = 1;
-                icon.innerText = "▼";
-            } else {
-                hpSortDirection = -1;
-                icon.innerText = "▲";
-            }
-            updateDataAndRender();
-        }
-
-        // 修改數值的功能 (固定增減 1 點)
+        // 網頁端加減點數處理
         function changeValue(name, type, amount) {
             let player = participants.find(p => p.name === name);
             if (player) {
@@ -356,35 +437,39 @@
                     player.hp += amount;
                     if (player.hp < 0) player.hp = 0; 
                 } else if (type === 'points') {
-                    player.points += amount;
-                    if (player.points < 0) player.points = 0; 
+                    // 變更當前選定局數的分數
+                    player.roundScores[currentRound - 1] += amount;
+                    if (player.roundScores[currentRound - 1] < 0) player.roundScores[currentRound - 1] = 0; 
                 }
                 updateDataAndRender();
             }
         }
 
-        // 自訂編輯數值的功能
+        // 自訂輸入功能
         function customEdit(name) {
             let player = participants.find(p => p.name === name);
             if (player) {
                 let newHp = prompt(`請輸入【${player.name}】的最新血量：`, player.hp);
                 if (newHp !== null && newHp.trim() !== "" && !isNaN(newHp)) {
-                    player.hp = parseInt(newHp);
+                    player.hp = Math.max(0, parseInt(newHp));
                 }
 
-                let newPoints = prompt(`請輸入【${player.name}】的最新積分：`, player.points);
-                if (newPoints !== null && newPoints.trim() !== "" && !isNaN(newPoints)) {
-                    player.points = parseInt(newPoints);
+                let newBase = prompt(`請輸入【${player.name}】的【原始分數】：`, player.points);
+                if (newBase !== null && newBase.trim() !== "" && !isNaN(newBase)) {
+                    player.points = Math.max(0, parseInt(newBase));
+                }
+
+                let currentRoundScore = player.roundScores[currentRound - 1];
+                let newScore = prompt(`請輸入【${player.name}】在【第 ${currentRound} 局】的最新得分：`, currentRoundScore);
+                if (newScore !== null && newScore.trim() !== "" && !isNaN(newScore)) {
+                    player.roundScores[currentRound - 1] = Math.max(0, parseInt(newScore));
                 }
                 
-                if (player.hp < 0) player.hp = 0;
-                if (player.points < 0) player.points = 0;
-
                 updateDataAndRender();
             }
         }
 
-        // 渲染表格內容
+        // 畫面渲染
         function renderTable() {
             const tbody = document.getElementById('tournament-data');
             tbody.innerHTML = '';
@@ -400,22 +485,30 @@
                 let hpPercent = Math.min((p.hp / maxHp) * 100, 100);
                 if (hpPercent < 0) hpPercent = 0;
 
+                // 產生網頁端的明細顯示
+                let roundsStr = p.roundScores.map((score, idx) => `局${idx+1}:${score}`).join(' | ');
+
                 tr.innerHTML = `
                     <td><strong>${p.name}</strong></td>
                     <td>
-                        <span style="display:inline-block; width:35px; text-align:right;">${p.hp}</span>
+                        <span style="display:inline-block; width:35px; text-align:right; font-weight:bold;">${p.hp}</span>
                         <div class="hp-bar-container">
                             <div class="hp-bar" style="width: ${hpPercent}%;"></div>
                         </div>
                     </td>
-                    <td>${p.points} 分</td>
+                    <td>
+                        <div class="rounds-breakdown">
+                            <span class="base-score-tag">原始:${p.points}</span> ｜ ${roundsStr}
+                        </div>
+                    </td>
                     <td class="${rankClass}">第 ${p.rank} 名</td>
+                    <td class="total-score-display">${p.totalPoints} 分</td>
                     <td>
                         <div class="action-btns">
                             <button class="btn-hp-add" onclick="changeValue('${p.name}', 'hp', 1)">+1 血</button>
                             <button class="btn-hp-sub" onclick="changeValue('${p.name}', 'hp', -1)">-1 血</button>
-                            <button class="btn-pt-add" onclick="changeValue('${p.name}', 'points', 1)">+1 分</button>
-                            <button class="btn-pt-sub" onclick="changeValue('${p.name}', 'points', -1)">-1 分</button>
+                            <button class="btn-pt-add" onclick="changeValue('${p.name}', 'points', 1)">+1 分 (局${currentRound})</button>
+                            <button class="btn-pt-sub" onclick="changeValue('${p.name}', 'points', -1)">-1 分 (局${currentRound})</button>
                             <button class="btn-edit" onclick="customEdit('${p.name}')">✏️ 自訂</button>
                         </div>
                     </td>
@@ -424,7 +517,6 @@
             });
         }
 
-        // 啟動程式
         init();
     </script>
 </body>
