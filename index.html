@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>失控事務所積分錦標賽</title>
     
-    <!-- 僅引入鎖定的 Google Fonts 公開字型：Orbitron 與 思源黑體 -->
+    <!-- 鎖定 Google Fonts 公開字型：Orbitron 與 思源黑體 -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&family=Orbitron:wght@700&display=swap" rel="stylesheet">
@@ -21,7 +21,6 @@
         }
 
         body {
-            /* 鎖定科幻電子風字型組合 */
             font-family: 'Orbitron', 'Noto Sans TC', sans-serif;
             background-color: var(--bg-color);
             color: var(--text-color);
@@ -61,8 +60,10 @@
             margin-bottom: 20px;
             display: flex;
             align-items: center;
-            gap: 20px;
+            justify-content: space-between; /* 讓重設按鈕靠右 */
             box-sizing: border-box;
+            flex-wrap: wrap;
+            gap: 15px;
         }
 
         .config-item {
@@ -87,7 +88,7 @@
             font-weight: bold;
             width: 80px;
             text-align: center;
-            font-family: 'Orbitron', sans-serif; /* 讓設定框數字也套用科幻風 */
+            font-family: 'Orbitron', sans-serif;
         }
 
         .config-bar input:focus {
@@ -192,6 +193,7 @@
         .btn-pt-add { background-color: #1e90ff; }
         .btn-pt-sub { background-color: #ff6348; }
         .btn-edit { background-color: #747d8c; }
+        .btn-reset { background-color: #ffa502; color: #000; }
 
     </style>
 </head>
@@ -201,11 +203,14 @@
 
     <!-- 頂部設定列 -->
     <div class="config-bar">
-        <!-- 血量上限設定 (預設為 20) -->
+        <!-- 血量上限設定 -->
         <div class="config-item">
             <label for="max-hp-input">🩸 血量顯示上限：</label>
             <input type="number" id="max-hp-input" value="20" min="1" oninput="updateMaxHp(this.value)">
         </div>
+        
+        <!-- 重設按鈕 -->
+        <button class="btn-reset" onclick="resetToDefault()">🔄 重設預設值</button>
     </div>
 
     <div class="container">
@@ -226,8 +231,8 @@
     </div>
 
     <script>
-        // 參賽者初始資料 (預設對應上限 20)
-        let participants = [
+        // 預設的初始資料 (當本地沒紀錄時使用)
+        const defaultParticipants = [
             { name: "emily", hp: 12, points: 0 },
             { name: "Jamie", hp: 12,  points: 0 },
             { name: "怡", hp: 11, points: 0 },
@@ -237,18 +242,52 @@
             { name: "花花", hp: 1, points: 0 },
             { name: "大學", hp: 9, points: 0 },
             { name: "難姐", hp: 11, points: 0 },
-            { name: "亞", hp: 6,  points: 0 }  
+            { name: "亞", hp: 6,  points: 0 }   
         ];
+        const defaultMaxHp = 20;
 
-        // 全域血量滿分變數
+        // 執行階段使用的變數
+        let participants = [];
         let maxHp = 20;
 
         // 排序狀態：0 = 按積分排名, 1 = 血量降序, -1 = 血量升序
         let hpSortDirection = 0; 
 
-        // 初始化
+        // 初始化：嘗試從 localStorage 載入資料
         function init() {
+            const savedParticipants = localStorage.getItem('sk_tournament_players');
+            const savedMaxHp = localStorage.getItem('sk_tournament_maxhp');
+
+            if (savedParticipants) {
+                participants = JSON.parse(savedParticipants);
+            } else {
+                participants = JSON.parse(JSON.stringify(defaultParticipants)); // 深拷貝
+            }
+
+            if (savedMaxHp) {
+                maxHp = parseInt(savedMaxHp);
+                document.getElementById('max-hp-input').value = maxHp;
+            } else {
+                maxHp = defaultMaxHp;
+            }
+
             updateDataAndRender();
+        }
+
+        // 儲存當前狀態到 localStorage
+        function saveToLocalStorage() {
+            localStorage.setItem('sk_tournament_players', JSON.stringify(participants));
+            localStorage.setItem('sk_tournament_maxhp', maxHp.toString());
+        }
+
+        // 強制重設回預設值
+        function resetToDefault() {
+            if (confirm("確定要清除所有更動，重設回原本的初始資料嗎？")) {
+                localStorage.removeItem('sk_tournament_players');
+                localStorage.removeItem('sk_tournament_maxhp');
+                document.getElementById('max-hp-input').value = defaultMaxHp;
+                init();
+            }
         }
 
         // 更新最大血量設定
@@ -256,6 +295,7 @@
             let val = parseInt(value);
             if (!isNaN(val) && val > 0) {
                 maxHp = val;
+                saveToLocalStorage(); // 儲存上限變更
                 renderTable(); 
             }
         }
@@ -265,6 +305,7 @@
             calculateRanks();
             applyCurrentSort();
             renderTable();
+            saveToLocalStorage(); // 每次資料變動就自動寫入本地小抽屜
         }
 
         // 計算名次
@@ -356,7 +397,6 @@
                 else if (p.rank === 2) rankClass = 'rank-2';
                 else if (p.rank === 3) rankClass = 'rank-3';
 
-                // 根據設定的 maxHp 計算百分比
                 let hpPercent = Math.min((p.hp / maxHp) * 100, 100);
                 if (hpPercent < 0) hpPercent = 0;
 
