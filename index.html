@@ -40,6 +40,18 @@
             text-align: center;
         }
 
+        h2 {
+            color: #ffa502;
+            font-size: 1.4rem;
+            margin: 25px 0 10px 0;
+            align-self: flex-start;
+            width: 100%;
+            max-width: 1150px;
+            letter-spacing: 1px;
+            border-left: 4px solid var(--accent-color);
+            padding-left: 10px;
+        }
+
         .container {
             width: 100%;
             max-width: 1150px;
@@ -47,6 +59,13 @@
             padding: 20px;
             border-radius: 12px;
             box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+            box-sizing: border-box;
+            margin-bottom: 20px;
+        }
+
+        /* 讓表格擁有獨立的橫向滾動條 */
+        .table-wrapper {
+            width: 100%;
             overflow-x: auto;
         }
 
@@ -57,7 +76,7 @@
             background-color: #2f3542;
             padding: 15px 20px;
             border-radius: 8px;
-            margin-bottom: 20px;
+            margin-bottom: 10px;
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -116,13 +135,13 @@
             border-collapse: collapse;
             text-align: center;
             font-size: 1.1rem;
-            min-width: 950px;
         }
 
         th, td {
-            padding: 15px 10px;
+            padding: 14px 10px;
             border-bottom: 1px solid #444;
             vertical-align: middle;
+            white-space: nowrap;
         }
 
         th {
@@ -130,7 +149,6 @@
             color: #ffa502;
             font-weight: bold;
             letter-spacing: 1px;
-            white-space: nowrap;
         }
 
         th.hp-header {
@@ -139,17 +157,19 @@
         }
 
         tbody tr {
-            transition: transform 0.2s ease, background-color 0.2s;
+            transition: background-color 0.15s;
         }
 
         tbody tr:hover {
             background-color: var(--table-hover);
         }
 
+        /* 名次特殊顏色 */
         .rank-1 { color: #ffd700; font-weight: bold; font-size: 1.3rem; }
         .rank-2 { color: #c0c0c0; font-weight: bold; font-size: 1.2rem; }
         .rank-3 { color: #cd7f32; font-weight: bold; font-size: 1.15rem; }
         
+        /* 血條視覺 */
         .hp-bar-container {
             width: 80px;
             background-color: #444;
@@ -165,27 +185,14 @@
             transition: width 0.2s ease;
         }
 
-        /* 積分明細字體樣式 */
-        .rounds-breakdown {
-            font-size: 0.85rem;
-            color: #aaa;
-            word-break: break-all;
-            max-width: 380px;
-            margin-left: auto;
-            margin-right: auto;
-            line-height: 1.5;
-        }
-        .base-score-tag {
-            color: #ffa502;
+        /* 下方明細表的專屬微調 */
+        .round-cell {
+            font-family: 'Orbitron', sans-serif;
+            color: #1e90ff;
             font-weight: bold;
         }
-
-        /* 右方總分數欄位特別強調 */
-        .total-score-display {
-            font-weight: bold; 
-            color: #ffa502; 
-            font-size: 1.4rem;
-            text-shadow: 0 0 8px rgba(255, 165, 2, 0.3);
+        .round-cell.has-value {
+            color: #ffa502;
         }
 
         .action-btns {
@@ -254,26 +261,44 @@
         <button class="btn-reset" onclick="resetToDefault()">🔄 全賽局重設</button>
     </div>
 
+    <!-- 上方區塊：操作與即時排行 -->
+    <h2>⚔️ 實時對戰操作面板 (依血量排序)</h2>
     <div class="container">
-        <table>
-            <thead>
-                <tr>
-                    <th>參賽者</th>
-                    <th class="hp-header">血量 (▼排序基準)</th>
-                    <th>原始分數 & 各局明細</th>
-                    <th>名次</th>
-                    <th>總分數</th>
-                    <th>操作 (變更數值)</th>
-                </tr>
-            </thead>
-            <tbody id="tournament-data">
-                <!-- 資料將由 JavaScript 動態渲染 -->
-            </tbody>
-        </table>
+        <div class="table-wrapper">
+            <table id="top-table">
+                <thead>
+                    <tr>
+                        <th>參賽者</th>
+                        <th class="hp-header">血量 (▼)</th>
+                        <th>已獲得積分</th>
+                        <th>名次</th>
+                        <th>操作 (變更數值)</th>
+                    </tr>
+                </thead>
+                <tbody id="top-table-body">
+                    <!-- 由 JS 動態渲染 -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 下方區塊：各局數據明細 -->
+    <h2>📊 各局得分明細數據大表</h2>
+    <div class="container">
+        <div class="table-wrapper">
+            <table id="bottom-table">
+                <thead id="bottom-table-head">
+                    <!-- 由 JS 動態生成各局欄位 -->
+                </thead>
+                <tbody id="bottom-table-body">
+                    <!-- 由 JS 動態渲染 -->
+                </tbody>
+            </table>
+        </div>
     </div>
 
     <script>
-        // 核心要求：程式碼只需先寫原始分數(points)，無需增加每局分數
+        // 初始名單 (純淨名單：無內嵌原始分數)
         const defaultParticipants = [
             { name: "emily", hp: 12, points: 0 },
             { name: "Jamie", hp: 12,  points: 0 },
@@ -297,9 +322,9 @@
 
         // 初始化
         function init() {
-            const savedPlayers = localStorage.getItem('sk_tour_v5_players');
-            const savedMaxHp = localStorage.getItem('sk_tour_v5_maxhp');
-            const savedTotalRounds = localStorage.getItem('sk_tour_v5_totalrounds');
+            const savedPlayers = localStorage.getItem('sk_tour_v6_players');
+            const savedMaxHp = localStorage.getItem('sk_tour_v6_maxhp');
+            const savedTotalRounds = localStorage.getItem('sk_tour_v6_totalrounds');
 
             if (savedMaxHp) {
                 maxHp = parseInt(savedMaxHp);
@@ -317,16 +342,15 @@
             if (savedPlayers) {
                 participants = JSON.parse(savedPlayers);
             } else {
-                // 如果本地沒有紀錄，則根據原始資料，在網頁端「動態建立」各局的 0 分數陣列
+                // 網頁端初始化配置：全體歸零，建立指定局數的空矩陣
                 participants = defaultParticipants.map(p => ({
                     name: p.name,
                     hp: p.hp,
-                    points: p.points, // 原始分數
-                    roundScores: Array(totalRounds).fill(0) // 網頁端自動配置
+                    roundScores: Array(totalRounds).fill(0)
                 }));
             }
 
-            // 確保每位參賽者的每局分數陣列長度正確 (防止因手動加局導致舊快取對不上)
+            // 防呆補齊局數
             participants.forEach(p => {
                 if(!p.roundScores) p.roundScores = [];
                 while(p.roundScores.length < totalRounds) {
@@ -338,7 +362,7 @@
             updateDataAndRender();
         }
 
-        // 更新局數下拉選單
+        // 更新控制列的局數選單
         function updateRoundDropdown() {
             const select = document.getElementById('round-select');
             select.innerHTML = '';
@@ -351,13 +375,12 @@
             }
         }
 
-        // 切換目前管理局數
         function changeCurrentRound(val) {
             currentRound = parseInt(val);
-            renderTable(); 
+            renderTopTable(); // 刷新按鈕文字提示
         }
 
-        // ➕ 網頁端新增局數
+        // ➕ 新增局數
         function addNewRound() {
             totalRounds++;
             participants.forEach(p => {
@@ -368,19 +391,17 @@
             updateDataAndRender();
         }
 
-        // 儲存至本地快取
         function saveToLocalStorage() {
-            localStorage.setItem('sk_tour_v5_players', JSON.stringify(participants));
-            localStorage.setItem('sk_tour_v5_maxhp', maxHp.toString());
-            localStorage.setItem('sk_tour_v5_totalrounds', totalRounds.toString());
+            localStorage.setItem('sk_tour_v6_players', JSON.stringify(participants));
+            localStorage.setItem('sk_tour_v6_maxhp', maxHp.toString());
+            localStorage.setItem('sk_tour_v6_totalrounds', totalRounds.toString());
         }
 
-        // 全賽局重設
         function resetToDefault() {
-            if (confirm("確定要清除所有更動，重設回原本的初始資料嗎？")) {
-                localStorage.removeItem('sk_tour_v5_players');
-                localStorage.removeItem('sk_tour_v5_maxhp');
-                localStorage.removeItem('sk_tour_v5_totalrounds');
+            if (confirm("確定要清除所有紀錄，重新開啟一場 10 局的新賽事嗎？")) {
+                localStorage.removeItem('sk_tour_v6_players');
+                localStorage.removeItem('sk_tour_v6_maxhp');
+                localStorage.removeItem('sk_tour_v6_totalrounds');
                 document.getElementById('max-hp-input').value = defaultMaxHp;
                 totalRounds = defaultTotalRounds;
                 currentRound = 1;
@@ -388,33 +409,33 @@
             }
         }
 
-        // 變更血量上限
         function updateMaxHp(value) {
             let val = parseInt(value);
             if (!isNaN(val) && val > 0) {
                 maxHp = val;
                 saveToLocalStorage();
-                renderTable(); 
+                renderTopTable(); 
+                renderBottomTable();
             }
         }
 
-        // 核心數據處理
+        // 核心數據整合
         function updateDataAndRender() {
             calculateTotalAndRanks();
-            // 核心規則：永遠依據【血量】由高到低進行畫面重排
+            // 核心排序：一律依照【血量由高到低】排列
             participants.sort((a, b) => b.hp - a.hp);
-            renderTable();
+            
+            renderTopTable();
+            renderBottomTable();
             saveToLocalStorage();
         }
 
-        // 計算總分與名次
+        // 計算總分與名次 (名次由累積總分決定)
         function calculateTotalAndRanks() {
             participants.forEach(p => {
-                // 總分 = 原始分數 + 網頁端操作產生的各局加總
-                p.totalPoints = p.points + p.roundScores.reduce((sum, score) => sum + score, 0);
+                p.totalPoints = p.roundScores.reduce((sum, score) => sum + score, 0);
             });
 
-            // 複製一份專門用來計算積分名次
             let sortedByPoints = [...participants].sort((a, b) => b.totalPoints - a.totalPoints);
             let currentRank = 1;
             
@@ -429,7 +450,7 @@
             }
         }
 
-        // 網頁端加減點數處理
+        // 數值增減
         function changeValue(name, type, amount) {
             let player = participants.find(p => p.name === name);
             if (player) {
@@ -437,7 +458,6 @@
                     player.hp += amount;
                     if (player.hp < 0) player.hp = 0; 
                 } else if (type === 'points') {
-                    // 變更當前選定局數的分數
                     player.roundScores[currentRound - 1] += amount;
                     if (player.roundScores[currentRound - 1] < 0) player.roundScores[currentRound - 1] = 0; 
                 }
@@ -445,7 +465,7 @@
             }
         }
 
-        // 自訂輸入功能
+        // ✏️ 自訂對話框
         function customEdit(name) {
             let player = participants.find(p => p.name === name);
             if (player) {
@@ -454,13 +474,8 @@
                     player.hp = Math.max(0, parseInt(newHp));
                 }
 
-                let newBase = prompt(`請輸入【${player.name}】的【原始分數】：`, player.points);
-                if (newBase !== null && newBase.trim() !== "" && !isNaN(newBase)) {
-                    player.points = Math.max(0, parseInt(newBase));
-                }
-
                 let currentRoundScore = player.roundScores[currentRound - 1];
-                let newScore = prompt(`請輸入【${player.name}】在【第 ${currentRound} 局】的最新得分：`, currentRoundScore);
+                let newScore = prompt(`請輸入【${player.name}】在【第 ${currentRound} 局】的得分：`, currentRoundScore);
                 if (newScore !== null && newScore.trim() !== "" && !isNaN(newScore)) {
                     player.roundScores[currentRound - 1] = Math.max(0, parseInt(newScore));
                 }
@@ -469,9 +484,9 @@
             }
         }
 
-        // 畫面渲染
-        function renderTable() {
-            const tbody = document.getElementById('tournament-data');
+        // 渲染上方表格（主面板）
+        function renderTopTable() {
+            const tbody = document.getElementById('top-table-body');
             tbody.innerHTML = '';
 
             participants.forEach(p => {
@@ -485,9 +500,6 @@
                 let hpPercent = Math.min((p.hp / maxHp) * 100, 100);
                 if (hpPercent < 0) hpPercent = 0;
 
-                // 產生網頁端的明細顯示
-                let roundsStr = p.roundScores.map((score, idx) => `局${idx+1}:${score}`).join(' | ');
-
                 tr.innerHTML = `
                     <td><strong>${p.name}</strong></td>
                     <td>
@@ -496,13 +508,8 @@
                             <div class="hp-bar" style="width: ${hpPercent}%;"></div>
                         </div>
                     </td>
-                    <td>
-                        <div class="rounds-breakdown">
-                            <span class="base-score-tag">原始:${p.points}</span> ｜ ${roundsStr}
-                        </div>
-                    </td>
+                    <td style="font-weight: bold; color: #ffa502;">${p.totalPoints} 分</td>
                     <td class="${rankClass}">第 ${p.rank} 名</td>
-                    <td class="total-score-display">${p.totalPoints} 分</td>
                     <td>
                         <div class="action-btns">
                             <button class="btn-hp-add" onclick="changeValue('${p.name}', 'hp', 1)">+1 血</button>
@@ -512,6 +519,45 @@
                             <button class="btn-edit" onclick="customEdit('${p.name}')">✏️ 自訂</button>
                         </div>
                     </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // 渲染下方表格（各局明細大表）
+        function renderBottomTable() {
+            // 1. 生成表頭
+            const thead = document.getElementById('bottom-table-head');
+            let headHtml = `<tr><th>參賽者</th>`;
+            for (let i = 1; i <= totalRounds; i++) {
+                headHtml += `<th>第 ${i} 局</th>`;
+            }
+            headHtml += `<th>總名次</th></tr>`;
+            thead.innerHTML = headHtml;
+
+            // 2. 生成內容
+            const tbody = document.getElementById('bottom-table-body');
+            tbody.innerHTML = '';
+
+            participants.forEach(p => {
+                const tr = document.createElement('tr');
+
+                let rankClass = '';
+                if (p.rank === 1) rankClass = 'rank-1';
+                else if (p.rank === 2) rankClass = 'rank-2';
+                else if (p.rank === 3) rankClass = 'rank-3';
+
+                // 生成每局的分數 TD 串
+                let scoresTdHtml = '';
+                p.roundScores.forEach(score => {
+                    let cellClass = score > 0 ? 'round-cell has-value' : 'round-cell';
+                    scoresTdHtml += `<td class="${cellClass}">${score}</td>`;
+                });
+
+                tr.innerHTML = `
+                    <td><strong>${p.name}</strong></td>
+                    ${scoresTdHtml}
+                    <td class="${rankClass}">第 ${p.rank} 名</td>
                 `;
                 tbody.appendChild(tr);
             });
