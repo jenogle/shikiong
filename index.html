@@ -1,436 +1,320 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>失控陀螺爭霸賽</title>
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Orbitron:wght@700;900&family=Noto+Sans+TC:wght@400;700;900&display=swap');
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>失控事務所積分錦標賽</title>
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --card-bg: #262626;
+            --text-color: #ffffff;
+            --accent-color: #ff4757;
+            --table-header: #2f3542;
+            --table-hover: #333333;
+        }
 
-:root {
-  --red:      #ff1e2d;
-  --red-glow: rgba(255,30,45,0.55);
-  --red-dim:  #7a0010;
-  --blue:     #1565ff;
-  --blue-glow:rgba(21,101,255,0.55);
-  --blue-dim: #062a80;
-  --bg:       #06060e;
-  --panel:    #0d0d1a;
-  --border:   #1e1e30;
-  --text:     #e8e8f8;
-  --muted:    #555570;
-  --gold:     #ffd700;
-}
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif, "Microsoft JhengHei";
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 40px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
 
-*{margin:0;padding:0;box-sizing:border-box;}
+        h1 {
+            color: var(--accent-color);
+            font-size: 2.5rem;
+            margin-bottom: 30px;
+            text-shadow: 0 0 10px rgba(255, 71, 87, 0.3);
+            letter-spacing: 2px;
+            text-align: center;
+        }
 
-body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: 'Noto Sans TC', sans-serif;
-  min-height: 100vh;
-  overflow-x: hidden;
-}
+        .container {
+            width: 100%;
+            max-width: 950px;
+            background-color: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+            overflow-x: auto; /* 避免手機螢幕過窄 */
+        }
 
-/* spinning bg gyro effect */
-body::before {
-  content:'';
-  position:fixed;
-  top:50%; left:50%;
-  width:140vmax; height:140vmax;
-  transform:translate(-50%,-50%);
-  background: conic-gradient(
-    from 0deg,
-    rgba(255,30,45,0.04) 0deg,
-    transparent 30deg,
-    rgba(21,101,255,0.04) 180deg,
-    transparent 210deg,
-    rgba(255,30,45,0.03) 360deg
-  );
-  animation: spinBg 20s linear infinite;
-  pointer-events:none;
-  z-index:0;
-}
-@keyframes spinBg { to { transform: translate(-50%,-50%) rotate(360deg); } }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: center;
+            font-size: 1.1rem;
+            min-width: 700px;
+        }
 
-body::after {
-  content:'';
-  position:fixed;
-  inset:0;
-  background: radial-gradient(ellipse 60% 50% at 50% 50%, transparent 40%, var(--bg) 100%);
-  pointer-events:none;
-  z-index:0;
-}
+        th, td {
+            padding: 15px 10px;
+            border-bottom: 1px solid #444;
+            vertical-align: middle;
+        }
 
-/* ── HEADER ── */
-.site-header {
-  position:relative;
-  z-index:10;
-  text-align:center;
-  padding:28px 16px 10px;
-}
+        th {
+            background-color: var(--table-header);
+            color: #ffa502;
+            font-weight: bold;
+            letter-spacing: 1px;
+            white-space: nowrap;
+        }
 
-.gyro-icon {
-  font-size: 2.5rem;
-  display: inline-block;
-  animation: gyroSpin 2s linear infinite;
-  line-height:1;
-}
-@keyframes gyroSpin { to { transform: rotate(360deg); } }
+        /* 血量排序欄位樣式 */
+        .sortable {
+            cursor: pointer;
+            user-select: none;
+            transition: background-color 0.2s;
+        }
 
-.site-title {
-  font-family:'Orbitron', sans-serif;
-  font-weight:900;
-  font-size: clamp(1.4rem,5vw,3rem);
-  letter-spacing:0.08em;
-  margin-top:6px;
-  background: linear-gradient(90deg, var(--red) 0%, #fff 40%, var(--blue) 100%);
-  -webkit-background-clip:text;
-  -webkit-text-fill-color:transparent;
-  background-clip:text;
-  line-height:1.1;
-}
+        .sortable:hover {
+            background-color: #3e4452;
+        }
 
-.site-sub {
-  font-size:0.7rem;
-  letter-spacing:0.25em;
-  color: var(--muted);
-  text-transform:uppercase;
-  margin-top:6px;
-}
+        .sort-icon {
+            font-size: 0.9rem;
+            margin-left: 5px;
+            color: #ccc;
+        }
 
-/* ── NAV TABS ── */
-.nav {
-  position:relative;
-  z-index:10;
-  display:flex;
-  justify-content:center;
-  gap:6px;
-  padding:14px 16px;
-  flex-wrap:wrap;
-}
+        tbody tr {
+            transition: background-color 0.2s;
+        }
 
-.nav-btn {
-  padding:7px 18px;
-  border-radius:3px;
-  border:1px solid var(--border);
-  background:var(--panel);
-  color:var(--muted);
-  font-family:'Noto Sans TC',sans-serif;
-  font-size:0.75rem;
-  font-weight:700;
-  letter-spacing:0.12em;
-  cursor:pointer;
-  transition:all 0.18s;
-  text-transform:uppercase;
-}
-.nav-btn:hover { color:var(--text); border-color:var(--muted); }
-.nav-btn.active-red  { background:var(--red);  border-color:var(--red);  color:#fff; box-shadow:0 0 12px var(--red-glow); }
-.nav-btn.active-blue { background:var(--blue); border-color:var(--blue); color:#fff; box-shadow:0 0 12px var(--blue-glow); }
+        tbody tr:hover {
+            background-color: var(--table-hover);
+        }
 
-/* ── PAGE SECTIONS ── */
-.page { display:none; position:relative; z-index:5; }
-.page.active { display:block; }
+        /* 名次特殊樣式 */
+        .rank-1 { color: #ffd700; font-weight: bold; font-size: 1.3rem; }
+        .rank-2 { color: #c0c0c0; font-weight: bold; font-size: 1.2rem; }
+        .rank-3 { color: #cd7f32; font-weight: bold; font-size: 1.15rem; }
+        
+        /* 血條樣式 */
+        .hp-bar-container {
+            width: 80px;
+            background-color: #444;
+            border-radius: 4px;
+            display: inline-block;
+            margin-left: 8px;
+            vertical-align: middle;
+            overflow: hidden;
+        }
+        .hp-bar {
+            height: 8px;
+            background-color: #2ed573;
+            transition: width 0.3s ease;
+        }
 
-/* ══════════════════════════════════════════
-   LIVE SCOREBOARD
-══════════════════════════════════════════ */
-.scoreboard {
-  max-width:860px;
-  margin:0 auto;
-  padding:16px 16px 40px;
-}
+        /* 按鈕樣式 */
+        .action-btns {
+            display: flex;
+            gap: 5px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            border: none;
+            border-radius: 4px;
+            padding: 6px 10px;
+            font-weight: bold;
+            cursor: pointer;
+            color: white;
+            transition: transform 0.1s, opacity 0.2s;
+            font-size: 0.9rem;
+        }
 
-.match-selector-row {
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  gap:10px;
-  margin-bottom:20px;
-  flex-wrap:wrap;
-}
+        button:active {
+            transform: scale(0.95);
+        }
 
-.match-selector-row label {
-  font-size:0.72rem;
-  color:var(--muted);
-  letter-spacing:0.15em;
-  text-transform:uppercase;
-}
+        button:hover {
+            opacity: 0.8;
+        }
 
-.match-select {
-  background:var(--panel);
-  border:1px solid var(--border);
-  color:var(--text);
-  padding:6px 12px;
-  border-radius:4px;
-  font-family:'Noto Sans TC',sans-serif;
-  font-size:0.8rem;
-  font-weight:700;
-  cursor:pointer;
-  min-width:180px;
-}
+        .btn-hp-add { background-color: #2ed573; color: #000; }
+        .btn-hp-sub { background-color: #ff4757; }
+        .btn-pt-add { background-color: #1e90ff; }
+        .btn-pt-sub { background-color: #ff6348; }
+        .btn-edit { background-color: #747d8c; }
 
-/* big score panel */
-.live-panel {
-  display:grid;
-  grid-template-columns:1fr auto 1fr;
-  gap:0;
-  background:var(--panel);
-  border:1px solid var(--border);
-  border-radius:10px;
-  overflow:hidden;
-  box-shadow:
-    inset 4px 0 30px rgba(255,30,45,0.08),
-    inset -4px 0 30px rgba(21,101,255,0.08);
-  position:relative;
-}
+    </style>
+</head>
+<body>
 
-.live-panel::before {
-  content:'';
-  position:absolute;
-  top:0; left:50%;
-  transform:translateX(-50%);
-  width:1px;
-  height:100%;
-  background:linear-gradient(to bottom, transparent, var(--border) 20%, var(--border) 80%, transparent);
-}
+    <h1>失控事務所積分錦標賽</h1>
 
-.side {
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  padding:20px 16px 24px;
-  gap:10px;
-  position:relative;
-}
+    <div class="container">
+        <table>
+            <thead>
+                <tr>
+                    <th>參賽者</th>
+                    <th id="th-hp" class="sortable" onclick="toggleHpSort()">血量 <span id="sort-direction" class="sort-icon">↕</span></th>
+                    <th>已獲得積分</th>
+                    <th>名次</th>
+                    <th>操作 (變更數值)</th>
+                </tr>
+            </thead>
+            <tbody id="tournament-data">
+                <!-- 資料將由 JavaScript 動態渲染 -->
+            </tbody>
+        </table>
+    </div>
 
-.side.red-side  { background: linear-gradient(135deg, rgba(255,30,45,0.12) 0%, transparent 70%); }
-.side.blue-side { background: linear-gradient(225deg, rgba(21,101,255,0.12) 0%, transparent 70%); }
+    <script>
+        // 參賽者初始資料
+        let participants = [
+            { name: "阿傑", hp: 120, points: 450 },
+            { name: "與天", hp: 85,  points: 600 },
+            { name: "快刀手", hp: 200, points: 300 },
+            { name: "小幻", hp: 50,  points: 520 },
+            { name: "孤狼", hp: 160, points: 410 },
+            { name: "玫瑰", hp: 95,  points: 600 } 
+        ];
 
-.side-label {
-  font-size:0.6rem;
-  font-weight:700;
-  letter-spacing:0.25em;
-  text-transform:uppercase;
-}
-.red-side  .side-label { color:var(--red); }
-.blue-side .side-label { color:var(--blue); }
+        // 排序狀態：0 = 按積分排名, 1 = 血量降序, -1 = 血量升序
+        let hpSortDirection = 0; 
 
-.team-name-live {
-  font-family:'Orbitron',sans-serif;
-  font-weight:700;
-  font-size:clamp(0.9rem,3vw,1.5rem);
-  text-align:center;
-  word-break:break-all;
-  min-height:2em;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-}
+        // 初始化
+        function init() {
+            updateDataAndRender();
+        }
 
-.red-side  .team-name-live { color:#fff; text-shadow:0 0 20px var(--red-glow); }
-.blue-side .team-name-live { color:#fff; text-shadow:0 0 20px var(--blue-glow); }
+        // 核心邏輯：更新名次 -> 套用當前排序 -> 渲染畫面
+        function updateDataAndRender() {
+            calculateRanks();
+            applyCurrentSort();
+            renderTable();
+        }
 
-.big-score {
-  font-family:'Orbitron',sans-serif;
-  font-weight:900;
-  font-size:clamp(4rem,14vw,8rem);
-  line-height:1;
-  transition:all 0.15s;
-}
+        // 計算名次 (只依據積分，與畫面排序無關)
+        function calculateRanks() {
+            let sortedByPoints = [...participants].sort((a, b) => b.points - a.points);
+            let currentRank = 1;
+            
+            for (let i = 0; i < sortedByPoints.length; i++) {
+                if (i > 0 && sortedByPoints[i].points < sortedByPoints[i - 1].points) {
+                    currentRank = i + 1;
+                }
+                let originalObj = participants.find(p => p.name === sortedByPoints[i].name);
+                if (originalObj) {
+                    originalObj.rank = currentRank;
+                }
+            }
+        }
 
-.red-side  .big-score { color:var(--red);  text-shadow:0 0 40px var(--red-glow),  0 0 80px rgba(255,30,45,0.3); }
-.blue-side .big-score { color:var(--blue); text-shadow:0 0 40px var(--blue-glow), 0 0 80px rgba(21,101,255,0.3); }
+        // 套用目前的排序規則 (確保修改數值後，畫面不會亂跳)
+        function applyCurrentSort() {
+            if (hpSortDirection === 1) {
+                participants.sort((a, b) => b.hp - a.hp); // 血量高到低
+            } else if (hpSortDirection === -1) {
+                participants.sort((a, b) => a.hp - b.hp); // 血量低到高
+            } else {
+                participants.sort((a, b) => b.points - a.points); // 預設：積分高到低
+            }
+        }
 
-.big-score.bump {
-  animation: scoreBump 0.25s ease-out;
-}
-@keyframes scoreBump {
-  0%   { transform: scale(1); }
-  40%  { transform: scale(1.18); }
-  100% { transform: scale(1); }
-}
+        // 使用者點擊標題切換血量排序
+        function toggleHpSort() {
+            const icon = document.getElementById('sort-direction');
+            
+            if (hpSortDirection === 0 || hpSortDirection === -1) {
+                hpSortDirection = 1;
+                icon.innerText = "▼";
+            } else {
+                hpSortDirection = -1;
+                icon.innerText = "▲";
+            }
+            updateDataAndRender();
+        }
 
-.btn-row {
-  display:flex;
-  gap:8px;
-  margin-top:4px;
-}
+        // 修改數值的功能 (快速加減)
+        function changeValue(name, type, amount) {
+            let player = participants.find(p => p.name === name);
+            if (player) {
+                if (type === 'hp') {
+                    player.hp += amount;
+                    if (player.hp < 0) player.hp = 0; // 防止血量變負數
+                } else if (type === 'points') {
+                    player.points += amount;
+                    if (player.points < 0) player.points = 0; // 防止積分變負數
+                }
+                updateDataAndRender();
+            }
+        }
 
-.score-btn {
-  width:44px;
-  height:44px;
-  border-radius:6px;
-  border:2px solid;
-  background:transparent;
-  font-size:1.4rem;
-  font-weight:900;
-  cursor:pointer;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  transition:all 0.15s;
-  line-height:1;
-  font-family:'Orbitron',sans-serif;
-}
+        // 自訂編輯數值的功能
+        function customEdit(name) {
+            let player = participants.find(p => p.name === name);
+            if (player) {
+                let newHp = prompt(`請輸入【${player.name}】的最新血量：`, player.hp);
+                if (newHp !== null && newHp.trim() !== "" && !isNaN(newHp)) {
+                    player.hp = parseInt(newHp);
+                }
 
-.red-side  .score-btn { border-color:var(--red-dim);  color:var(--red); }
-.blue-side .score-btn { border-color:var(--blue-dim); color:var(--blue); }
-.red-side  .score-btn:hover { background:var(--red);  color:#fff; box-shadow:0 0 16px var(--red-glow); }
-.blue-side .score-btn:hover { background:var(--blue); color:#fff; box-shadow:0 0 16px var(--blue-glow); }
+                let newPoints = prompt(`請輸入【${player.name}】的最新積分：`, player.points);
+                if (newPoints !== null && newPoints.trim() !== "" && !isNaN(newPoints)) {
+                    player.points = parseInt(newPoints);
+                }
+                
+                // 防止輸入負數
+                if (player.hp < 0) player.hp = 0;
+                if (player.points < 0) player.points = 0;
 
-.score-btn.minus { font-size:1.8rem; }
+                updateDataAndRender();
+            }
+        }
 
-.win-flash {
-  font-family:'Orbitron',sans-serif;
-  font-size:0.65rem;
-  font-weight:900;
-  letter-spacing:0.2em;
-  padding:4px 10px;
-  border-radius:3px;
-  text-transform:uppercase;
-  opacity:0;
-  transition:opacity 0.3s;
-  min-height:22px;
-}
-.win-flash.show { opacity:1; }
-.red-side  .win-flash { background:var(--red);  color:#fff; }
-.blue-side .win-flash { background:var(--blue); color:#fff; }
+        // 渲染表格內容
+        function renderTable() {
+            const tbody = document.getElementById('tournament-data');
+            tbody.innerHTML = '';
 
-/* center vs */
-.vs-col {
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-  padding:20px 12px;
-  gap:14px;
-  min-width:80px;
-}
+            participants.forEach(p => {
+                const tr = document.createElement('tr');
 
-.vs-text {
-  font-family:'Orbitron',sans-serif;
-  font-size:1.6rem;
-  font-weight:900;
-  color:var(--muted);
-  letter-spacing:0.1em;
-}
+                // 名次特殊樣式
+                let rankClass = '';
+                if (p.rank === 1) rankClass = 'rank-1';
+                else if (p.rank === 2) rankClass = 'rank-2';
+                else if (p.rank === 3) rankClass = 'rank-3';
 
-.match-info-badge {
-  font-size:0.58rem;
-  letter-spacing:0.15em;
-  color:var(--muted);
-  text-transform:uppercase;
-  text-align:center;
-  line-height:1.6;
-}
+                // 計算血量條比例 (以最大 200 為視覺基準)
+                let hpPercent = Math.min((p.hp / 200) * 100, 100);
 
-.round-badge {
-  padding:4px 8px;
-  border:1px solid var(--border);
-  border-radius:3px;
-  font-size:0.6rem;
-  font-weight:700;
-  letter-spacing:0.1em;
-  color:var(--text);
-  background:var(--bg);
-  text-align:center;
-}
+                tr.innerHTML = `
+                    <td><strong>${p.name}</strong></td>
+                    <td>
+                        <span style="display:inline-block; width:30px;">${p.hp}</span>
+                        <div class="hp-bar-container">
+                            <div class="hp-bar" style="width: ${hpPercent}%;"></div>
+                        </div>
+                    </td>
+                    <td>${p.points} 分</td>
+                    <td class="${rankClass}">第 ${p.rank} 名</td>
+                    <td>
+                        <div class="action-btns">
+                            <button class="btn-hp-add" onclick="changeValue('${p.name}', 'hp', 10)">+10 血</button>
+                            <button class="btn-hp-sub" onclick="changeValue('${p.name}', 'hp', -10)">-10 血</button>
+                            <button class="btn-pt-add" onclick="changeValue('${p.name}', 'points', 50)">+50 分</button>
+                            <button class="btn-pt-sub" onclick="changeValue('${p.name}', 'points', -50)">-50 分</button>
+                            <button class="btn-edit" onclick="customEdit('${p.name}')">✏️ 自訂</button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
 
-/* action buttons */
-.action-row {
-  display:flex;
-  gap:8px;
-  justify-content:center;
-  margin-top:16px;
-  flex-wrap:wrap;
-}
-
-.action-btn {
-  padding:9px 20px;
-  border-radius:4px;
-  border:1px solid var(--border);
-  background:var(--panel);
-  color:var(--text);
-  font-family:'Noto Sans TC',sans-serif;
-  font-weight:700;
-  font-size:0.78rem;
-  cursor:pointer;
-  letter-spacing:0.08em;
-  transition:all 0.18s;
-}
-.action-btn:hover { background:var(--border); }
-.action-btn.confirm-btn {
-  background:linear-gradient(90deg, var(--red-dim), var(--blue-dim));
-  border-color:transparent;
-  color:#fff;
-}
-.action-btn.confirm-btn:hover {
-  background:linear-gradient(90deg, var(--red), var(--blue));
-  box-shadow:0 0 20px rgba(150,50,150,0.4);
-}
-
-/* ══════════════════════════════════════════
-   16強 BRACKET
-══════════════════════════════════════════ */
-.bracket-page { padding:10px 16px 40px; }
-
-.round-heading {
-  text-align:center;
-  font-family:'Orbitron',sans-serif;
-  font-size:0.85rem;
-  font-weight:700;
-  letter-spacing:0.2em;
-  color:var(--muted);
-  margin:16px 0 12px;
-  text-transform:uppercase;
-  position:relative;
-}
-.round-heading::before,.round-heading::after {
-  content:'';
-  position:absolute;
-  top:50%;
-  width:30%;
-  height:1px;
-  background:var(--border);
-}
-.round-heading::before { left:0; }
-.round-heading::after  { right:0; }
-
-.matches-grid {
-  display:grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px,1fr));
-  gap:10px;
-  max-width:1200px;
-  margin:0 auto;
-}
-
-/* bracket match card */
-.bcard {
-  background:var(--panel);
-  border:1px solid var(--border);
-  border-radius:7px;
-  overflow:hidden;
-  transition:box-shadow 0.2s;
-  cursor:pointer;
-}
-.bcard:hover { box-shadow:0 0 0 1px var(--muted); }
-.bcard.is-live { box-shadow:0 0 0 1px var(--gold), 0 0 16px rgba(255,215,0,0.2); }
-
-.bcard-label {
-  padding:5px 10px;
-  font-size:0.58rem;
-  letter-spacing:0.18em;
-  color:var(--muted);
-  border-bottom:1px solid var(--border);
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  text-transform:uppercase;
-}
-
-.live-tag {
-  font-size:0.55rem;
-  background:var(--gold);
-  color:#000;
-  padding:1px 5px;
+        // 啟動程式
+        init();
+    </script>
+</body>
+</html>
