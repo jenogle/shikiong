@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>失控事務所積分錦標賽</title>
+    
+    <!-- 引入 Google Fonts 公開字型庫 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+TC:wght@400;700&family=Noto+Serif+TC:wght@700&family=Orbitron:wght@700&display=swap" rel="stylesheet">
+
     <style>
         :root {
             --bg-color: #1a1a1a;
@@ -15,7 +21,8 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif, "Microsoft JhengHei";
+            /* 預設使用思源黑體 */
+            font-family: 'Noto Sans TC', sans-serif;
             background-color: var(--bg-color);
             color: var(--text-color);
             margin: 0;
@@ -23,6 +30,7 @@
             display: flex;
             flex-direction: column;
             align-items: center;
+            transition: font-family 0.3s ease;
         }
 
         h1 {
@@ -44,7 +52,7 @@
             overflow-x: auto;
         }
 
-        /* 新增的設定區塊樣式 */
+        /* 設定控制列 */
         .config-bar {
             width: 100%;
             max-width: 950px;
@@ -54,29 +62,44 @@
             margin-bottom: 20px;
             display: flex;
             align-items: center;
-            gap: 15px;
+            gap: 20px;
             box-sizing: border-box;
+            flex-wrap: wrap;
+        }
+
+        .config-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
         .config-bar label {
             font-weight: bold;
             color: #ffa502;
-            font-size: 1.1rem;
+            font-size: 1rem;
         }
 
-        .config-bar input {
+        .config-bar input, .config-bar select {
             background-color: #1a1a1a;
             border: 1px solid #555;
             color: #fff;
             padding: 8px 12px;
             border-radius: 4px;
             font-size: 1rem;
-            width: 100px;
-            text-align: center;
             font-weight: bold;
         }
+        
+        .config-bar select {
+            cursor: pointer;
+            color: #ff4757;
+        }
 
-        .config-bar input:focus {
+        .config-bar input {
+            width: 80px;
+            text-align: center;
+        }
+
+        .config-bar input:focus, .config-bar select:focus {
             border-color: var(--accent-color);
             outline: none;
         }
@@ -186,9 +209,22 @@
 
     <!-- 頂部設定列 -->
     <div class="config-bar">
-        <label for="max-hp-input">🩸 血量顯示滿分上限：</label>
-        <input type="number" id="max-hp-input" value="200" min="1" oninput="updateMaxHp(this.value)">
-        <span style="color: #aaa; font-size: 0.9rem;">(變更此數值可即時調整下方血量條的滿血比例基準)</span>
+        <!-- 字型挑選器 -->
+        <div class="config-item">
+            <label for="font-select">🔤 挑選網頁字型：</label>
+            <select id="font-select" onchange="changeFont(this.value)">
+                <option value="'Noto Sans TC', sans-serif">思源黑體 (預設 - 現代清晰)</option>
+                <option value="'Noto Serif TC', serif">思源宋體 (古典俐落)</option>
+                <option value="'Orbitron', 'Noto Sans TC', sans-serif">Orbitron (科幻電子風)</option>
+                <option value="'DotGothic16', sans-serif">DotGothic16 (復古像素風)</option>
+            </select>
+        </div>
+        
+        <!-- 血量上限設定 -->
+        <div class="config-item">
+            <label for="max-hp-input">🩸 血量上限：</label>
+            <input type="number" id="max-hp-input" value="20" min="1" oninput="updateMaxHp(this.value)">
+        </div>
     </div>
 
     <div class="container">
@@ -209,7 +245,7 @@
     </div>
 
     <script>
-        // 參賽者初始資料
+        // 參賽者初始資料 (配合上限20，將初始血量等比例調低)
         let participants = [
             { name: "emily", hp: 12, points: 0 },
             { name: "Jamie", hp: 12,  points: 0 },
@@ -220,11 +256,11 @@
             { name: "花花", hp: 1, points: 0 },
             { name: "大學", hp: 9, points: 0 },
             { name: "難姐", hp: 11, points: 0 },
-            { name: "亞", hp: 6,  points: 0 }   
+            { name: "亞", hp: 6,  points: 0 }  
         ];
 
-        // 全域血量滿分變數 (預設 200)
-        let maxHp = 12;
+        // 全域血量滿分變數 (預設改為 20)
+        let maxHp = 20;
 
         // 排序狀態：0 = 按積分排名, 1 = 血量降序, -1 = 血量升序
         let hpSortDirection = 0; 
@@ -234,23 +270,28 @@
             updateDataAndRender();
         }
 
+        // 切換字型
+        function changeFont(fontFamilyString) {
+            document.body.style.fontFamily = fontFamilyString;
+        }
+
         // 更新最大血量設定
         function updateMaxHp(value) {
             let val = parseInt(value);
             if (!isNaN(val) && val > 0) {
                 maxHp = val;
-                renderTable(); // 重新渲染血量條
+                renderTable(); 
             }
         }
 
-        // 核心邏輯：更新名次 -> 套用當前排序 -> 渲染畫面
+        // 核心邏輯
         function updateDataAndRender() {
             calculateRanks();
             applyCurrentSort();
             renderTable();
         }
 
-        // 計算名次 (只依據積分)
+        // 計算名次
         function calculateRanks() {
             let sortedByPoints = [...participants].sort((a, b) => b.points - a.points);
             let currentRank = 1;
@@ -290,7 +331,7 @@
             updateDataAndRender();
         }
 
-        // 修改數值的功能 (精簡為固定加減 1 分/點)
+        // 修改數值的功能 (固定增減 1 點)
         function changeValue(name, type, amount) {
             let player = participants.find(p => p.name === name);
             if (player) {
@@ -339,7 +380,7 @@
                 else if (p.rank === 2) rankClass = 'rank-2';
                 else if (p.rank === 3) rankClass = 'rank-3';
 
-                // 根據動態設定的 maxHp 計算百分比
+                // 根據設定的 maxHp 計算百分比
                 let hpPercent = Math.min((p.hp / maxHp) * 100, 100);
                 if (hpPercent < 0) hpPercent = 0;
 
